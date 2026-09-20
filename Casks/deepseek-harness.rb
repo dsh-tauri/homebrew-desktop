@@ -1,14 +1,16 @@
 cask "deepseek-harness" do
   arch arm: "aarch64", intel: "x64"
 
-  version "0.14.3"
-  sha256 arm:   "d62e0375fdab5d3c0fff66d97fd61aa4337756d24dfb210bbb7a978159054fae",
-         intel: "49a9f8a10ff6e06a2020979e007c8e29fe8966d2ec567c66ad5d4e9e700acd0b"
+  version "0.15.7"
+  sha256 arm:   "9ad0c787baba026daf5bd7933269507ceb21584891b959ea0c7f38665048d966",
+         intel: "5499d9d626757545b4e75c7715c8259303b547e1a2129a32660a4c9371fe4b61"
 
-  url "https://github.com/dsh-tauri-desk/deepseek-harness-desktop/releases/download/v#{version}/Deepseek.Harness.Desktop_#{version}_#{arch}.dmg"
+  url "https://github.com/dsh-tauri/deepseek-harness-desktop/releases/download/v#{version}/Deepseek.Harness.Desktop_#{version}_#{arch}.dmg"
   name "Deepseek Harness Desktop"
   desc "Desktop application for DeepSeek Harness"
-  homepage "https://github.com/dsh-tauri-desk/deepseek-harness-desktop"
+  homepage "https://github.com/dsh-tauri/deepseek-harness-desktop"
+
+  depends_on macos: ">= :catalina"
 
   app "Deepseek Harness Desktop.app"
 
