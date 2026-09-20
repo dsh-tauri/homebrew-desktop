@@ -95,7 +95,7 @@ jobs:
             desc "Desktop application for DeepSeek Harness"
             homepage "https://github.com/@@UPSTREAM_REPO@@"
 
-            depends_on macos: ">= :catalina"
+            depends_on :macos
 
             app "Deepseek Harness Desktop.app"
 

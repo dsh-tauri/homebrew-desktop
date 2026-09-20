@@ -10,7 +10,7 @@ cask "deepseek-harness" do
   desc "Desktop application for DeepSeek Harness"
   homepage "https://github.com/dsh-tauri/deepseek-harness-desktop"
 
-  depends_on macos: ">= :catalina"
+  depends_on :macos
 
   app "Deepseek Harness Desktop.app"
 
