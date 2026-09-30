@@ -1,27 +1,27 @@
 # Homebrew Tap for DeepSeek Harness Desktop
 
 A [Homebrew](https://brew.sh) tap for the macOS builds of
-[DeepSeek Harness Desktop](https://github.com/dsh-tauri-desk/deepseek-harness-desktop).
+[DeepSeek Harness Desktop](https://github.com/dsh-tauri/deepseek-harness-desktop).
 
 ## Install
 
-Install in one command (this taps `dsh-tauri-desk/desktop` and installs the `deepseek-harness` cask for you):
+Install in one command (this taps `dsh-tauri/desktop` and installs the `deepseek-harness` cask for you):
 
 ```bash
-brew install dsh-tauri-desk/desktop/deepseek-harness
+brew install dsh-tauri/desktop/deepseek-harness
 ```
 
 Or add the tap first, then install:
 
 ```bash
-brew tap dsh-tauri-desk/desktop
+brew tap dsh-tauri/desktop
 brew install --cask deepseek-harness
 ```
 
-> **Note on the tap name:** this repository is named `dsh-tauri-desk/homebrew-desktop`,
-> which Homebrew shortens to the tap `dsh-tauri-desk/desktop`. The one-liner above uses
+> **Note on the tap name:** this repository is named `dsh-tauri/homebrew-desktop`,
+> which Homebrew shortens to the tap `dsh-tauri/desktop`. The one-liner above uses
 > that shortcut, so you don't have to type the `homebrew-` prefix.
-> `brew install dsh-tauri-desk/homebrew-desktop` (without a formula/cask name) is **not** a
+> `brew install dsh-tauri/homebrew-desktop` (without a formula/cask name) is **not** a
 > valid install command in Homebrew — it needs the trailing cask name.
 
 ## Requirements

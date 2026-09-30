@@ -12,13 +12,18 @@ on:
         type: boolean
         default: false
 
-# 用本仓库自己的 GITHUB_TOKEN 把更新写回 Casks/，无需外部凭据
+# 直接向本仓库提交 Casks/ 更新，无需外部凭据
 permissions:
   contents: write
 
 concurrency:
   group: update-cask
   cancel-in-progress: true
+
+env:
+  # 组织已由 dsh-tauri-desk 改名为 dsh-tauri，旧名仅靠 GitHub 重定向可用
+  UPSTREAM_REPO: dsh-tauri/deepseek-harness-desktop
+  CASK_PATH: Casks/deepseek-harness.rb
 
 jobs:
   update:
@@ -34,9 +39,12 @@ jobs:
         id: rel
         shell: bash
         run: |
-          tag=$(gh api repos/dsh-tauri-desk/deepseek-harness-desktop/releases/latest --jq '.tag_name')
+          tag=$(gh api "repos/${UPSTREAM_REPO}/releases/latest" --jq '.tag_name')
+          if [ -z "$tag" ] || [ "$tag" = "null" ]; then
+            echo "::error::Failed to resolve latest release tag from ${UPSTREAM_REPO}"
+            exit 1
+          fi
           echo "latest_tag=$tag"
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
 
       - name: Compare and download DMGs
@@ -46,8 +54,7 @@ jobs:
           VERSION: ${{ steps.rel.outputs.version }}
           FORCE: ${{ github.event.inputs.force }}
         run: |
-          cask=Casks/deepseek-harness.rb
-          current=$(sed -nE 's/^  version "([^"]+)".*/\1/p' "$cask")
+          current=$(sed -nE 's/^  version "([^"]+)".*/\1/p' "$CASK_PATH")
           echo "current=$current new=$VERSION force=${FORCE:-false}"
           if [ "$current" = "$VERSION" ] && [ "${FORCE:-false}" != "true" ]; then
             echo "Already up to date (v$current). Nothing to do."
@@ -55,17 +62,16 @@ jobs:
             exit 0
           fi
 
-          base="https://github.com/dsh-tauri-desk/deepseek-harness-desktop/releases/download/v${VERSION}"
+          base="https://github.com/${UPSTREAM_REPO}/releases/download/v${VERSION}"
           curl -fsSL -o arm.dmg "$base/Deepseek.Harness.Desktop_${VERSION}_aarch64.dmg"
           curl -fsSL -o x64.dmg "$base/Deepseek.Harness.Desktop_${VERSION}_x64.dmg"
 
-          sha_arm=$(sha256sum arm.dmg | awk '{print $1}')
-          sha_intel=$(sha256sum x64.dmg | awk '{print $1}')
-          echo "sha_arm=$sha_arm"
-          echo "sha_intel=$sha_intel"
-          echo "sha_arm=$sha_arm" >> "$GITHUB_OUTPUT"
-          echo "sha_intel=$sha_intel" >> "$GITHUB_OUTPUT"
-          echo "updated=true" >> "$GITHUB_OUTPUT"
+          {
+            echo "sha_arm=$(sha256sum arm.dmg | awk '{print $1}')"
+            echo "sha_intel=$(sha256sum x64.dmg | awk '{print $1}')"
+            echo "updated=true"
+          } >> "$GITHUB_OUTPUT"
+          rm -f arm.dmg x64.dmg
 
       - name: Update cask in tap
         if: steps.dl.outputs.updated == 'true'
@@ -74,21 +80,22 @@ jobs:
           VERSION: ${{ steps.rel.outputs.version }}
           SHA_ARM: ${{ steps.dl.outputs.sha_arm }}
           SHA_INTEL: ${{ steps.dl.outputs.sha_intel }}
-          TAP_REPO: dsh-tauri-desk/homebrew-desktop
-          CASK_PATH: Casks/deepseek-harness.rb
         run: |
-          cat > /tmp/deepseek-harness.rb <<CASKEOT
+          # 单引号 heredoc 保留 Ruby 的 #{version} / #{arch}，变量走占位符替换
+          cat > "$CASK_PATH" <<'CASKEOT'
           cask "deepseek-harness" do
             arch arm: "aarch64", intel: "x64"
 
-            version "${VERSION}"
-            sha256 arm:   "${SHA_ARM}",
-                   intel: "${SHA_INTEL}"
+            version "@@VERSION@@"
+            sha256 arm:   "@@SHA_ARM@@",
+                   intel: "@@SHA_INTEL@@"
 
-            url "https://github.com/dsh-tauri-desk/deepseek-harness-desktop/releases/download/v#{version}/Deepseek.Harness.Desktop_#{version}_#{arch}.dmg"
+            url "https://github.com/@@UPSTREAM_REPO@@/releases/download/v#{version}/Deepseek.Harness.Desktop_#{version}_#{arch}.dmg"
             name "Deepseek Harness Desktop"
             desc "Desktop application for DeepSeek Harness"
-            homepage "https://github.com/dsh-tauri-desk/deepseek-harness-desktop"
+            homepage "https://github.com/@@UPSTREAM_REPO@@"
+
+            depends_on :macos
 
             app "Deepseek Harness Desktop.app"
 
@@ -101,17 +108,33 @@ jobs:
           end
           CASKEOT
 
-          content_b64=$(base64 -w0 /tmp/deepseek-harness.rb)
-          current_sha=$(gh api "repos/${TAP_REPO}/contents/${CASK_PATH}" --jq '.sha')
+          sed -i \
+            -e "s|@@VERSION@@|${VERSION}|g" \
+            -e "s|@@SHA_ARM@@|${SHA_ARM}|g" \
+            -e "s|@@SHA_INTEL@@|${SHA_INTEL}|g" \
+            -e "s|@@UPSTREAM_REPO@@|${UPSTREAM_REPO}|g" \
+            "$CASK_PATH"
 
-          jq -n \
-            --arg msg "Update cask to v${VERSION}" \
-            --arg content "$content_b64" \
-            --arg sha "$current_sha" \
-            '{message:$msg, content:$content, sha:$sha}' \
-            | gh api "repos/${TAP_REPO}/contents/${CASK_PATH}" \
-                --method PUT \
-                --input - \
-                --jq '.content.name'
+          if grep -q '@@' "$CASK_PATH"; then
+            echo '::error::Unsubstituted placeholder left in cask'
+            cat "$CASK_PATH"
+            exit 1
+          fi
+          cat "$CASK_PATH"
 
-          echo "Pushed cask v${VERSION} to ${TAP_REPO}"
+      - name: Commit and push
+        if: steps.dl.outputs.updated == 'true'
+        shell: bash
+        env:
+          VERSION: ${{ steps.rel.outputs.version }}
+        run: |
+          if git diff --quiet -- "$CASK_PATH"; then
+            echo "Cask content unchanged; nothing to commit."
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add "$CASK_PATH"
+          git commit -m "Update cask to v${VERSION}"
+          git push
+          echo "Pushed cask v${VERSION} to ${GITHUB_REPOSITORY}"
