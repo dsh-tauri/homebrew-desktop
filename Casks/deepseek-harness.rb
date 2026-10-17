@@ -1,9 +1,9 @@
 cask "deepseek-harness" do
   arch arm: "aarch64", intel: "x64"
 
-  version "0.24.1"
-  sha256 arm:   "498a9688940e152cd3f4d3991c082677337bbb44fb1d77b15179783021dddd3c",
-         intel: "fecb4dbf473b29e25500414fa088171892751c6179af65b4c4a3de27981718dd"
+  version "0.24.2"
+  sha256 arm:   "b7e189a29c2c8f979bc61f004937b3eebbb3af947861be5ea236f1e06a0b73c8",
+         intel: "ae056a6811d0491ded7a748f2f1e9936e8ffd14225848eb37b2070bdf925b601"
 
   url "https://github.com/dsh-tauri/deepseek-harness-desktop/releases/download/v#{version}/Deepseek.Harness.Desktop_#{version}_#{arch}.dmg"
   name "Deepseek Harness Desktop"
