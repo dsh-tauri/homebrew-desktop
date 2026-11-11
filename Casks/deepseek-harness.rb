@@ -12,12 +12,12 @@ cask "deepseek-harness" do
 
   depends_on :macos
 
-  app "Deepseek Harness Desktop.app"
+  app "DSH Tauri.app"
 
   zap trash: [
-    "~/Library/Application Support/io.github.hairyf.deepseek-harness-desktop",
-    "~/Library/Caches/io.github.hairyf.deepseek-harness-desktop",
-    "~/Library/Preferences/io.github.hairyf.deepseek-harness-desktop.plist",
+    "~/Library/Application Support/dsh-tauri",
+    "~/Library/Caches/dsh-tauri",
+    "~/Library/Preferences/dsh-tauri.plist",
     "~/.dsh",
   ]
 end
